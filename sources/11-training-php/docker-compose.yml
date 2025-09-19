@@ -1,0 +1,67 @@
+version: "3.8"
+
+volumes:
+  mysql-data:
+
+services:
+  web-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-backend
+    ports:
+      - "8080:80"
+    volumes:
+      # Mount toàn bộ project
+      - .:/var/www/html
+
+      # php.ini
+      - ./configs/php.ini/php.ini:/usr/local/etc/php/php.ini
+
+      # security.conf
+      - ./configs/httpd_security.conf/security.conf:/etc/apache2/conf-available/security.conf
+
+    working_dir: /var/www/html
+    environment:
+      APP_ENV: local
+    depends_on:
+      - web-mysql
+    restart: always
+    networks:
+      - webnet
+
+  web-mysql:
+    image: mysql:8.0
+    container_name: web-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: app_web1
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/app_web1.sql:/docker-entrypoint-initdb.d/app_web1.sql
+    # 👇 Thêm dòng này để tắt strict mode
+    command: --sql-mode=""
+    networks:
+      - webnet
+
+  web-phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: web-mysql
+      MYSQL_ROOT_PASSWORD: root
+    depends_on:
+      - web-mysql
+    networks:
+      - webnet
+
+networks:
+  webnet:
