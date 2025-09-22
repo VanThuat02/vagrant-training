@@ -5,27 +5,31 @@ ENV COMPOSER_VERSION=2.7.7
 
 RUN apt-get update \
     && apt-get install -y \
-        curl \
-        zip \
-        unzip \
-        git \
-        supervisor \
-        libpng-dev \
-        libpq-dev \
-        libzip-dev \
-        libexif-dev \
-        gnupg \
-        tzdata \
+    curl \
+    zip \
+    unzip \
+    git \
+    supervisor \
+    libpng-dev \
+    libpq-dev \
+    libzip-dev \
+    libexif-dev \
+    gnupg \
+    tzdata \
+    pkg-config \
+    libssl-dev \
     && docker-php-ext-install \
-        bcmath \
-        gd \
-        opcache \
-        sockets \
-        zip \
-        exif \
-        pdo_mysql \
-        mysqli \
-        && docker-php-ext-enable pdo_mysql
+    bcmath \
+    gd \
+    opcache \
+    sockets \
+    zip \
+    exif \
+    pdo_mysql \
+    mysqli \
+    && docker-php-ext-enable pdo_mysql \
+    && pecl install redis \
+    && docker-php-ext-enable redis
 
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug

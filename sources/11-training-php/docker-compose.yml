@@ -12,20 +12,15 @@ services:
     ports:
       - "8080:80"
     volumes:
-      # Mount toàn bộ project
       - .:/var/www/html
-
-      # php.ini
       - ./configs/php.ini/php.ini:/usr/local/etc/php/php.ini
-
-      # security.conf
       - ./configs/httpd_security.conf/security.conf:/etc/apache2/conf-available/security.conf
-
     working_dir: /var/www/html
     environment:
       APP_ENV: local
     depends_on:
       - web-mysql
+      - redis         # 👈 thêm vào đây
     restart: always
     networks:
       - webnet
@@ -44,7 +39,6 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
       - ./database/app_web1.sql:/docker-entrypoint-initdb.d/app_web1.sql
-    # 👇 Thêm dòng này để tắt strict mode
     command: --sql-mode=""
     networks:
       - webnet
@@ -60,6 +54,15 @@ services:
       MYSQL_ROOT_PASSWORD: root
     depends_on:
       - web-mysql
+    networks:
+      - webnet
+
+  redis:                      # 👈 Thêm Redis service
+    image: redis:7
+    container_name: training-redis
+    restart: always
+    ports:
+      - "6205:6379"
     networks:
       - webnet
 

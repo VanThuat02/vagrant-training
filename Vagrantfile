@@ -40,6 +40,10 @@ Vagrant.configure("2") do |config|
   # your network.
   config.vm.network "public_network"
 
+  # Forward Redis port
+  config.vm.network "forwarded_port", guest: 6379, host: 6379
+
+
   # Share an additional folder to the guest VM. The first argument is
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
