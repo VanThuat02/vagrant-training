@@ -14,10 +14,10 @@ if (!empty($_GET['keyword'])) {
     $params['keyword'] = $_GET['keyword'];
 }
 
-// Lấy danh sách users từ DB
+// lay danh sach users tu DB
 $users = $userModel->getUsers($params);
 
-// 👉 Thử lấy user login từ Redis (nếu có)
+// thu lay user login tu Redis (neu co)
 $loginUser = null;
 if (!empty($_SESSION['id'])) {
     $redisKey = 'user:login:' . $_SESSION['id'];
