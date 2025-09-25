@@ -3,6 +3,8 @@
 session_start();
 
 require_once 'models/UserModel.php';
+require_once 'csrf_helper.php';
+
 $userModel = new UserModel();
 
 // Redis
@@ -25,8 +27,9 @@ if (!empty($_SESSION['id'])) {
         $loginUser = json_decode($redis->get($redisKey), true);
     }
 }
-?>
 
+$csrf_token = CSRF_Protection::generateToken();
+?>
 
 <!DOCTYPE html>
 <html>
@@ -41,8 +44,7 @@ if (!empty($_SESSION['id'])) {
     <div class="container">
         <?php if (!empty($users)) { ?>
             <div class="alert alert-warning" role="alert">
-                List of users! <br>
-                Hacker: http://php.local/list_users.php?keyword=ASDF%25%22%3BTRUNCATE+banks%3B%23%23
+                List of users!
             </div>
             <table class="table table-striped">
                 <thead>
@@ -58,25 +60,25 @@ if (!empty($_SESSION['id'])) {
                     <?php foreach ($users as $user) { ?>
                         <tr>
                             <th scope="row"><?php echo $user['id'] ?></th>
-                            <td>
-                                <?php echo $user['name'] ?>
-                            </td>
-                            <td>
-                                <?php echo $user['fullname'] ?>
-                            </td>
-                            <td>
-                                <?php echo $user['type'] ?>
-                            </td>
+                            <td><?php echo $user['name'] ?></td>
+                            <td><?php echo $user['fullname'] ?></td>
+                            <td><?php echo $user['type'] ?></td>
                             <td>
                                 <a href="form_user.php?id=<?php echo $user['id'] ?>">
-                                    <i class="fa fa-pencil-square-o" aria-hidden="true" title="Update"></i>
+                                    <i class="fa fa-pencil-square-o" title="Update"></i>
                                 </a>
                                 <a href="view_user.php?id=<?php echo $user['id'] ?>">
-                                    <i class="fa fa-eye" aria-hidden="true" title="View"></i>
+                                    <i class="fa fa-eye" title="View"></i>
                                 </a>
-                                <a href="delete_user.php?id=<?php echo $user['id'] ?>">
-                                    <i class="fa fa-eraser" aria-hidden="true" title="Delete"></i>
-                                </a>
+
+                                <!-- Form xoá dùng POST + CSRF -->
+                                <form action="delete_user.php" method="POST" style="display:inline;">
+                                    <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                    <button type="submit" style="border:none;background:none;">
+                                        <i class="fa fa-eraser text-danger" title="Delete"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     <?php } ?>
@@ -84,7 +86,7 @@ if (!empty($_SESSION['id'])) {
             </table>
         <?php } else { ?>
             <div class="alert alert-dark" role="alert">
-                This is a dark alert—check it out!
+                No users found!
             </div>
         <?php } ?>
     </div>
