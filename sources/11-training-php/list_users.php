@@ -1,51 +1,76 @@
 <?php
-// Start the session
-session_start();
-
+require_once 'session_security.php'; // <-- important: must be first
 require_once 'models/UserModel.php';
-require_once 'csrf_helper.php';
-
 $userModel = new UserModel();
 
-// Redis
+// Redis (existing)
 $redis = new Redis();
 $redis->connect('training-redis', 6379);
 
+// collect params safely (still pass raw to model; assume model uses prepared statements)
 $params = [];
 if (!empty($_GET['keyword'])) {
     $params['keyword'] = $_GET['keyword'];
 }
 
-// lay danh sach users tu DB
+// lay danh sach users tu DB (UserModel must use prepared statements)
 $users = $userModel->getUsers($params);
 
-// thu lay user login tu Redis (neu co)
+// thu lay user login tu Redis (neu co) - prefer Redis but fallback to DB
 $loginUser = null;
 if (!empty($_SESSION['id'])) {
-    $redisKey = 'user:login:' . $_SESSION['id'];
+    $redisKey = 'user:login:' . intval($_SESSION['id']);
     if ($redis->exists($redisKey)) {
         $loginUser = json_decode($redis->get($redisKey), true);
+    } else {
+        $user = $userModel->findUserById(intval($_SESSION['id']));
+        if (!empty($user)) {
+            $loginUser = $user[0];
+            $redis->set($redisKey, json_encode($loginUser));
+            $redis->expire($redisKey, 300);
+        }
     }
 }
-
-$csrf_token = CSRF_Protection::generateToken();
 ?>
-
 <!DOCTYPE html>
 <html>
-
 <head>
+    <meta charset="utf-8">
     <title>Home</title>
     <?php include 'views/meta.php' ?>
+    <style>
+        .username-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-weight: bold;
+            color: #000;
+            background-color: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+    </style>
 </head>
-
 <body>
     <?php include 'views/header.php' ?>
+
     <div class="container">
+        <?php if (!empty($loginUser)) { ?>
+            <div class="username-display">
+                Welcome, <?= esc($loginUser['name']) ?>!
+            </div>
+        <?php } else { ?>
+            <div class="username-display">
+                Not logged in
+            </div>
+        <?php } ?>
+
         <?php if (!empty($users)) { ?>
             <div class="alert alert-warning" role="alert">
                 List of users!
             </div>
+
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -59,26 +84,20 @@ $csrf_token = CSRF_Protection::generateToken();
                 <tbody>
                     <?php foreach ($users as $user) { ?>
                         <tr>
-                            <th scope="row"><?php echo $user['id'] ?></th>
-                            <td><?php echo $user['name'] ?></td>
-                            <td><?php echo $user['fullname'] ?></td>
-                            <td><?php echo $user['type'] ?></td>
+                            <th scope="row"><?= intval($user['id']) ?></th>
+                            <td><?= esc($user['name']) ?></td>
+                            <td><?= esc($user['fullname']) ?></td>
+                            <td><?= esc($user['type']) ?></td>
                             <td>
-                                <a href="form_user.php?id=<?php echo $user['id'] ?>">
-                                    <i class="fa fa-pencil-square-o" title="Update"></i>
+                                <a href="form_user.php?id=<?= intval($user['id']) ?>" title="Update">
+                                    <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                                 </a>
-                                <a href="view_user.php?id=<?php echo $user['id'] ?>">
-                                    <i class="fa fa-eye" title="View"></i>
+                                <a href="view_user.php?id=<?= intval($user['id']) ?>" title="View">
+                                    <i class="fa fa-eye" aria-hidden="true"></i>
                                 </a>
-
-                                <!-- Form xoá dùng POST + CSRF -->
-                                <form action="delete_user.php" method="POST" style="display:inline;">
-                                    <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                    <button type="submit" style="border:none;background:none;">
-                                        <i class="fa fa-eraser text-danger" title="Delete"></i>
-                                    </button>
-                                </form>
+                                <a href="delete_user.php?id=<?= intval($user['id']) ?>" title="Delete" onclick="return confirm('Are you sure?');">
+                                    <i class="fa fa-eraser" aria-hidden="true"></i>
+                                </a>
                             </td>
                         </tr>
                     <?php } ?>
@@ -86,10 +105,9 @@ $csrf_token = CSRF_Protection::generateToken();
             </table>
         <?php } else { ?>
             <div class="alert alert-dark" role="alert">
-                No users found!
+                This is a dark alert—check it out!
             </div>
         <?php } ?>
     </div>
 </body>
-
 </html>

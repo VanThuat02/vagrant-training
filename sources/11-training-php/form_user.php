@@ -2,9 +2,6 @@
 // Start the session
 session_start();
 require_once 'models/UserModel.php';
-//  THÊM DÒNG NÀY
-require_once 'csrf_helper.php';
-
 $userModel = new UserModel();
 
 $user = NULL; //Add new user
@@ -18,11 +15,6 @@ if (!empty($_GET['id'])) {
 
 if (!empty($_POST['submit'])) {
 
-    //  THÊM CSRF VALIDATION (CHỈ THÊM 4 DÒNG NÀY)
-    if (empty($_POST['csrf_token']) || !CSRF_Protection::validateToken($_POST['csrf_token'])) {
-        die("CSRF token validation failed!");
-    }
-
     if (!empty($_id)) {
         $userModel->updateUser($_POST);
     } else {
@@ -34,30 +26,23 @@ if (!empty($_POST['submit'])) {
 ?>
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>User form</title>
     <?php include 'views/meta.php' ?>
 </head>
-
 <body>
-    <?php include 'views/header.php' ?>
+    <?php include 'views/header.php'?>
     <div class="container">
 
-        <?php if ($user || !isset($_id)) { ?>
-            <div class="alert alert-warning" role="alert">
-                User form
-            </div>
-            <form method="POST">
-                <input type="hidden" name="id" value="<?php echo $_id ?>">
-
-                <!-- THÊM CSRF TOKEN FIELD (CHỈ THÊM 1 DÒNG NÀY) -->
-                <?php //echo CSRF_Protection::getTokenField(); ?>
-
-                <div class="form-group">
-                    <label for="name">Name</label>
-                    <input class="form-control" name="name" placeholder="Name" value='<?php if (!empty($user[0]['name']))
-                        echo $user[0]['name'] ?>'>
+            <?php if ($user || !isset($_id)) { ?>
+                <div class="alert alert-warning" role="alert">
+                    User form
+                </div>
+                <form method="POST">
+                    <input type="hidden" name="id" value="<?php echo $_id ?>">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input class="form-control" name="name" placeholder="Name" value='<?php if (!empty($user[0]['name'])) echo $user[0]['name'] ?>'>
                     </div>
                     <div class="form-group">
                         <label for="password">Password</label>
@@ -66,12 +51,11 @@ if (!empty($_POST['submit'])) {
 
                     <button type="submit" name="submit" value="submit" class="btn btn-primary">Submit</button>
                 </form>
-        <?php } else { ?>
-            <div class="alert alert-success" role="alert">
-                User not found!
-            </div>
-        <?php } ?>
+            <?php } else { ?>
+                <div class="alert alert-success" role="alert">
+                    User not found!
+                </div>
+            <?php } ?>
     </div>
 </body>
-
 </html>
